@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  bjoetiek-db:
+    image: postgres:13-alpine
+    container_name: bjoetiek-db
+    environment:
+      - "TZ={{ general_timezone }}"
+      - "POSTGRES_USER=bjoetiek"
+      - "POSTGRES_PASSWORD=bjoetiek"
+    ports:
+      - "127.0.0.1:5432:5432"
