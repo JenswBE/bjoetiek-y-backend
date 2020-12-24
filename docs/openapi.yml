@@ -59,7 +59,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Product"
+                allOf:
+                  - $ref: "#/components/schemas/Product"
+                  - type: object
+                    properties:
+                      manufacturer:
+                        $ref: "#/components/schemas/Manufacturer"
 
     put:
       description: Update product
@@ -81,6 +86,162 @@ paths:
     delete:
       description: Delete product
       tags: ["Products"]
+      responses:
+        "200":
+          description: OK
+
+  /manufacturers:
+    get:
+      description: List manufacturers
+      tags: ["Manufacturers"]
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Manufacturer"
+
+    post:
+      description: Add manufacturer
+      tags: ["Manufacturers"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Manufacturer"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Manufacturer"
+
+  /manufacturers/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the manufacturer
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      description: Get manufacturer details
+      tags: ["Manufacturers"]
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Manufacturer"
+
+    put:
+      description: Update manufacturer
+      tags: ["Manufacturers"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Manufacturer"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Manufacturer"
+
+    delete:
+      description: Delete manufacturer
+      tags: ["Manufacturers"]
+      responses:
+        "200":
+          description: OK
+
+  /categories:
+    get:
+      description: List categories
+      tags: ["Categories"]
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+    post:
+      description: Add category
+      tags: ["Categories"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Category"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the category
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      description: Get category details
+      tags: ["Categories"]
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+    put:
+      description: Update category
+      tags: ["Categories"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Category"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+    delete:
+      description: Delete category
+      tags: ["Categories"]
       responses:
         "200":
           description: OK
@@ -131,6 +292,11 @@ components:
               description: Price in cents
               type: integer
               example: 1500
+            category_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
             manufacturer_id:
               type: string
               format: uuid
@@ -142,6 +308,47 @@ components:
             image_url:
               type: string
               format: url
+
+    Manufacturer:
+      allOf:
+        - $ref: "#/components/schemas/Header"
+        - type: object
+          properties:
+            name:
+              type: string
+              example: Bjoetiek Y
+            website_url:
+              type: string
+              format: url
+              example: https://bjoetiek-y.be
+            logo_url:
+              type: string
+              format: url
+              example: bjoetiek-y.jpg
+
+    Category:
+      allOf:
+        - $ref: "#/components/schemas/Header"
+        - type: object
+          properties:
+            name:
+              type: string
+              example: Makeup & Cosmetica
+            description:
+              type: string
+            image_url:
+              type: string
+              format: url
+              example: makeup-cosmetica.jpg
+            sort_order:
+              description: Should be sorted ascending by this column
+              type: integer
+            product_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+              readOnly: True
 
   securitySchemes:
     basicAuth:
