@@ -10,14 +10,18 @@ WORKDIR /usr/src/backend
 RUN rustup target add ${TARGET}
 
 # Build project
-COPY . .
+COPY src src
+COPY Cargo.lock .
+COPY Cargo.toml .
+COPY diesel.toml .
 RUN cargo test
 RUN cargo build --target ${TARGET} --release 
-RUN cp /usr/src/backend/target/${TARGET}/release/bjoetiek /service
+RUN mv /usr/src/backend/target/${TARGET}/release/bjoetiek /service
 
 # Build final image
 FROM scratch
 EXPOSE 8090
+COPY docs docs
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /service service
 CMD ["./service"]
