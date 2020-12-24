@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate diesel;
 
+use actix_files as fs;
 use actix_web::{get, middleware, post, web, App, Error, HttpResponse, HttpServer};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
@@ -74,7 +75,7 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create pool.");
 
-    let bind = "127.0.0.1:8080";
+    let bind = "127.0.0.1:8090";
 
     println!("Starting server at: {}", &bind);
 
@@ -86,6 +87,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(get_manufacturer)
             .service(add_manufacturer)
+            .service(fs::Files::new("/", "docs").index_file("index.html"))
     })
     .bind(&bind)?
     .run()
