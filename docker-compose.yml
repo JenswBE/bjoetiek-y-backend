@@ -1,21 +1,47 @@
-version: "3.8"
+version: "2.4"
 
 services:
-  bjoetiek-backend:
+  backend:
     build: .
-    container_name: bjoetiek-backend
+    container_name: backend
     environment:
       - "TZ=${TIMEZONE}"
-      - "DATABASE_URL=${DATABASE_URL}"
+      - "DATABASE_URL=postgres://bjoetiek:bjoetiek@db/bjoetiek"
+      - "RUST_LOG=debug"
+    networks:
+      - bjoetiek
     ports:
       - "127.0.0.1:8090:8090"
 
-  bjoetiek-db:
+  db:
     image: postgres:13-alpine
     container_name: bjoetiek-db
     environment:
       - "TZ=${TIMEZONE}"
       - "POSTGRES_USER=bjoetiek"
       - "POSTGRES_PASSWORD=bjoetiek"
+    networks:
+      - bjoetiek
     ports:
       - "127.0.0.1:5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    networks:
+      - bjoetiek
+    ports:
+      - "127.0.0.1:8032:80"
+    volumes:
+      - "bjoetiek-pgadmin:/var/lib/pgadmin"
+    environment:
+      - "TZ=${TIMEZONE}"
+      - "PGADMIN_DEFAULT_EMAIL=admin@bjoetiek-y.be"
+      - "PGADMIN_DEFAULT_PASSWORD=bjoetiek"
+
+networks:
+  bjoetiek:
+    name: bjoetiek
+
+volumes:
+  bjoetiek-pgadmin:

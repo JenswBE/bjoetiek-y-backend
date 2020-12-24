@@ -1,27 +1,25 @@
-FROM rust AS builder
+FROM rust:1 AS builder
 
-# Setup builder
-ARG TARGET=x86_64-unknown-linux-musl
-RUN apt-get update && \
-    apt-get install -qq \
-    build-essential \
-    musl-tools
-WORKDIR /usr/src/backend
-RUN rustup target add ${TARGET}
+# Fetch dependencies
+ENV USER=root
+WORKDIR /code
+RUN cargo init
+COPY Cargo.toml .
+COPY Cargo.lock .
+RUN cargo fetch
 
 # Build project
 COPY src src
-COPY Cargo.lock .
-COPY Cargo.toml .
 COPY diesel.toml .
-RUN cargo test
-RUN cargo build --target ${TARGET} --release 
-RUN mv /usr/src/backend/target/${TARGET}/release/bjoetiek /service
+RUN cargo test --offline
+RUN cargo build --release --offline
 
 # Build final image
-FROM scratch
+FROM rust:1-slim-buster
+RUN apt-get update && \
+    apt-get install -qq \
+    libpq5
 EXPOSE 8090
 COPY docs docs
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=builder /service service
-CMD ["./service"]
+COPY --from=builder /code/target/release/bjoetiek .
+CMD ["./bjoetiek"]

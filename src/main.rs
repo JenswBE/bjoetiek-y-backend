@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate diesel;
 
+use std::env;
+
 use actix_files as fs;
 use actix_web::{get, middleware, post, web, App, Error, HttpResponse, HttpServer};
 use diesel::prelude::*;
@@ -64,8 +66,10 @@ async fn add_manufacturer(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=info");
-    env_logger::init();
+    if env::var_os("RUST_LOG").is_none() {
+        env::set_var("RUST_LOG", "info");
+    }
+    pretty_env_logger::init();
     dotenv::dotenv().ok();
 
     // set up database connection pool
@@ -75,7 +79,7 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create pool.");
 
-    let bind = "127.0.0.1:8090";
+    let bind = env::var("BIND").unwrap_or("0.0.0.0:8090".to_string());
 
     println!("Starting server at: {}", &bind);
 
