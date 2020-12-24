@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate diesel;
 
+#[macro_use]
+extern crate diesel_migrations;
+
 use std::env;
 
 use actix_files as fs;
@@ -15,6 +18,8 @@ mod schema;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
+diesel_migrations::embed_migrations!();
+
 /// Finds manufacturer by UID.
 #[get("/manufacturer/{manufacturer_id}")]
 async fn get_manufacturer(
@@ -22,7 +27,7 @@ async fn get_manufacturer(
     manufacturer_uid: web::Path<Uuid>,
 ) -> Result<HttpResponse, Error> {
     let manufacturer_uid = manufacturer_uid.into_inner();
-    let conn = pool.get().expect("couldn't get db connection from pool");
+    let conn = pool.get().expect("Couldn't get db connection from pool");
 
     // use web::block to offload blocking Diesel code without blocking server thread
     let manufacturer =
@@ -78,6 +83,12 @@ async fn main() -> std::io::Result<()> {
     let pool = r2d2::Pool::builder()
         .build(manager)
         .expect("Failed to create pool.");
+
+    {
+        let conn = pool.get().expect("Couldn't get db connection from pool");
+        embedded_migrations::run_with_output(&conn, &mut std::io::stdout())
+            .expect("Failed to migrate database");
+    }
 
     let bind = env::var("BIND").unwrap_or("0.0.0.0:8090".to_string());
 
