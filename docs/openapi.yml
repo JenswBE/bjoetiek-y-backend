@@ -1,0 +1,152 @@
+openapi: "3.0.2"
+info:
+  title: Bjoetiek Y
+  version: "1.0"
+
+servers:
+  - url: https://localhost:8090
+
+paths:
+  /products:
+    get:
+      description: List products
+      tags: ["Products"]
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+    post:
+      description: Add product
+      tags: ["Products"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the product
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      description: Get product details
+      tags: ["Products"]
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+    put:
+      description: Update product
+      tags: ["Products"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+    delete:
+      description: Delete product
+      tags: ["Products"]
+      responses:
+        "200":
+          description: OK
+
+components:
+  schemas:
+    Header:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "9ec47752-b691-4eb1-967a-99cdb3930de3"
+          readOnly: True
+
+    TimestampedHeader:
+      allOf:
+        - $ref: "#/components/schemas/Header"
+        - type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              example: "2020-12-23T10:00:00Z"
+              readOnly: True
+            updated_at:
+              type: string
+              format: date-time
+              example: "2020-12-24T11:30:00Z"
+              readOnly: True
+
+    Product:
+      allOf:
+        - $ref: "#/components/schemas/TimestampedHeader"
+        - type: object
+          properties:
+            name:
+              type: string
+              example: Gezichtsmasker
+            slug:
+              type: string
+              example: gezichtsmasker-14f291d3
+            description_short:
+              type: string
+            description_long:
+              type: string
+            price:
+              description: Price in cents
+              type: integer
+              example: 1500
+            manufacturer_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - AVAILABLE
+                - ARCHIVED
+            image_url:
+              type: string
+              format: url
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+
+security:
+  - basicAuth: []
