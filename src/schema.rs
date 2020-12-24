@@ -1,8 +1,6 @@
 table! {
     categories (id) {
         id -> Uuid,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
         name -> Text,
         description -> Text,
         image_url -> Text,
@@ -20,8 +18,6 @@ table! {
 table! {
     manufacturers (id) {
         id -> Uuid,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
         name -> Text,
         website_url -> Text,
         logo_url -> Text,

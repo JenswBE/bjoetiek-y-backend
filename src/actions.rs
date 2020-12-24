@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use models::NewManufacturer;
 use uuid::Uuid;
 
 use crate::models;
@@ -11,7 +12,7 @@ pub fn find_manufacturer_by_id(
     use crate::schema::manufacturers::dsl;
 
     let manufacturer = dsl::manufacturers
-        .filter(dsl::id.eq(id.to_string()))
+        .filter(dsl::id.eq(id))
         .first::<models::Manufacturer>(conn)
         .optional()?;
 
@@ -20,17 +21,15 @@ pub fn find_manufacturer_by_id(
 
 /// Run query using Diesel to insert a new database row and return the result.
 pub fn insert_new_manufacturer(
+    new_manufacturer: NewManufacturer,
     conn: &PgConnection,
-) -> Result<models::NewManufacturer, diesel::result::Error> {
+) -> Result<models::Manufacturer, diesel::result::Error> {
     // It is common when using Diesel with Actix web to import schema-related
     // modules inside a function's scope (rather than the normal module's scope)
     // to prevent import collisions and namespace pollution.
     use crate::schema::manufacturers::dsl;
 
-    let new_manufacturer = models::NewManufacturer::default();
     diesel::insert_into(dsl::manufacturers)
         .values(&new_manufacturer)
-        .execute(conn)?;
-
-    Ok(new_manufacturer)
+        .get_result(conn)
 }

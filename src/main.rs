@@ -12,48 +12,53 @@ mod schema;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
-/// Finds user by UID.
-#[get("/user/{user_id}")]
-async fn get_user(
+/// Finds manufacturer by UID.
+#[get("/manufacturer/{manufacturer_id}")]
+async fn get_manufacturer(
     pool: web::Data<DbPool>,
-    user_uid: web::Path<Uuid>,
+    manufacturer_uid: web::Path<Uuid>,
 ) -> Result<HttpResponse, Error> {
-    let user_uid = user_uid.into_inner();
+    let manufacturer_uid = manufacturer_uid.into_inner();
     let conn = pool.get().expect("couldn't get db connection from pool");
 
     // use web::block to offload blocking Diesel code without blocking server thread
-    let user = web::block(move || actions::find_manufacturer_by_id(user_uid, &conn))
-        .await
-        .map_err(|e| {
-            eprintln!("{}", e);
-            HttpResponse::InternalServerError().finish()
-        })?;
+    let manufacturer =
+        web::block(move || actions::find_manufacturer_by_id(manufacturer_uid, &conn))
+            .await
+            .map_err(|e| {
+                eprintln!("{}", e);
+                HttpResponse::InternalServerError().finish()
+            })?;
 
-    if let Some(user) = user {
-        Ok(HttpResponse::Ok().json(user))
+    if let Some(manufacturer) = manufacturer {
+        Ok(HttpResponse::Ok().json(manufacturer))
     } else {
-        let res = HttpResponse::NotFound().body(format!("No user found with uid: {}", user_uid));
+        let res = HttpResponse::NotFound().body(format!(
+            "No manufacturer found with uid: {}",
+            manufacturer_uid
+        ));
         Ok(res)
     }
 }
 
-/// Inserts new user with name defined in form.
-#[post("/user")]
-async fn add_user(
+/// Inserts new manufacturer with name defined in form.
+#[post("/manufacturers")]
+async fn add_manufacturer(
     pool: web::Data<DbPool>,
-    // form: web::Json<models::NewUser>,
+    form: web::Json<models::NewManufacturer>,
 ) -> Result<HttpResponse, Error> {
     let conn = pool.get().expect("couldn't get db connection from pool");
 
     // use web::block to offload blocking Diesel code without blocking server thread
-    let user = web::block(move || actions::insert_new_manufacturer(&conn))
-        .await
-        .map_err(|e| {
-            eprintln!("{}", e);
-            HttpResponse::InternalServerError().finish()
-        })?;
+    let manufacturer =
+        web::block(move || actions::insert_new_manufacturer(form.into_inner(), &conn))
+            .await
+            .map_err(|e| {
+                eprintln!("{}", e);
+                HttpResponse::InternalServerError().finish()
+            })?;
 
-    Ok(HttpResponse::Ok().json(user))
+    Ok(HttpResponse::Ok().json(manufacturer))
 }
 
 #[actix_web::main]
@@ -79,8 +84,8 @@ async fn main() -> std::io::Result<()> {
             // set up DB pool to be used with web::Data<Pool> extractor
             .data(pool.clone())
             .wrap(middleware::Logger::default())
-            .service(get_user)
-            .service(add_user)
+            .service(get_manufacturer)
+            .service(add_manufacturer)
     })
     .bind(&bind)?
     .run()
