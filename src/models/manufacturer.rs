@@ -3,17 +3,17 @@ use uuid::Uuid;
 
 use crate::schema::manufacturers;
 
-#[derive(Debug, Insertable, Deserialize)]
-#[table_name = "manufacturers"]
-pub struct NewManufacturer {
+#[derive(Debug, Identifiable, Queryable, Serialize)]
+pub struct Manufacturer {
+    pub id: Uuid,
     pub name: String,
     pub website_url: String,
     pub logo_url: String,
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
-pub struct Manufacturer {
-    pub id: Uuid,
+#[derive(Debug, Insertable, AsChangeset, Deserialize)]
+#[table_name = "manufacturers"]
+pub struct ManufacturerData {
     pub name: String,
     pub website_url: String,
     pub logo_url: String,

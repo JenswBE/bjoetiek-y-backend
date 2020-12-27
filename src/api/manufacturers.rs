@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, Error, HttpResponse, Scope};
+use actix_web::{delete, get, post, put, web, Error, HttpResponse, Scope};
 
 use crate::db::manufacturers::*;
 use crate::models;
@@ -9,10 +9,12 @@ pub fn manufacturers_scope(path: &str) -> Scope {
         .service(list_manufacturers)
         .service(get_manufacturer)
         .service(add_manufacturer)
+        .service(update_manufacturer)
+        .service(delete_manufacturer)
 }
 
 /// List all manufacturers
-#[get("/manufacturers")]
+#[get("")]
 async fn list_manufacturers(state: web::Data<State>) -> Result<HttpResponse, Error> {
     let manufacturers = state
         .db
@@ -23,15 +25,15 @@ async fn list_manufacturers(state: web::Data<State>) -> Result<HttpResponse, Err
     Ok(HttpResponse::Ok().json(manufacturers))
 }
 
-/// Find manufacturer by UID
-#[get("/manufacturers/{manufacturer_id}")]
+/// Find manufacturer by ID
+#[get("/{manufacturer_id}")]
 async fn get_manufacturer(
     state: web::Data<State>,
-    manufacturer_uid: web::Path<uuid::Uuid>,
+    manufacturer_id: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, Error> {
-    let manufacturer_uid = manufacturer_uid.into_inner();
+    let manufacturer_id = manufacturer_id.into_inner();
     let msg = GetManufacturer {
-        id: manufacturer_uid.clone(),
+        id: manufacturer_id.clone(),
     };
     let manufacturer = state
         .db
@@ -43,21 +45,21 @@ async fn get_manufacturer(
         Ok(HttpResponse::Ok().json(manufacturer))
     } else {
         let res = HttpResponse::NotFound().body(format!(
-            "No manufacturer found with uid: {}",
-            manufacturer_uid
+            "No manufacturer found with id: {}",
+            manufacturer_id
         ));
         Ok(res)
     }
 }
 
 /// Insert new manufacturer from form
-#[post("/manufacturers")]
+#[post("")]
 async fn add_manufacturer(
     state: web::Data<State>,
-    form: web::Json<models::NewManufacturer>,
+    form: web::Json<models::ManufacturerData>,
 ) -> Result<HttpResponse, Error> {
     let msg = InsertManufacturer {
-        manufacturer: form.into_inner(),
+        data: form.into_inner(),
     };
     let manufacturer = state
         .db
@@ -67,4 +69,52 @@ async fn add_manufacturer(
         .expect("Failed to fetch manufacturer");
 
     Ok(HttpResponse::Ok().json(manufacturer))
+}
+
+/// Update manufacturer from form
+#[put("/{manufacturer_id}")]
+async fn update_manufacturer(
+    state: web::Data<State>,
+    manufacturer_id: web::Path<uuid::Uuid>,
+    form: web::Json<models::ManufacturerData>,
+) -> Result<HttpResponse, Error> {
+    let manufacturer_id = manufacturer_id.into_inner();
+    let msg = UpdateManufacturer {
+        id: manufacturer_id.clone(),
+        data: form.into_inner(),
+    };
+    let manufacturer = state.db.send(msg).await.expect("Failed to contact DbActor");
+
+    if let Ok(manufacturer) = manufacturer {
+        Ok(HttpResponse::Ok().json(manufacturer))
+    } else {
+        let res = HttpResponse::NotFound().body(format!(
+            "No manufacturer found with id: {}",
+            manufacturer_id
+        ));
+        Ok(res)
+    }
+}
+
+/// Delete manufacturer with ID
+#[delete("/{manufacturer_id}")]
+async fn delete_manufacturer(
+    state: web::Data<State>,
+    manufacturer_id: web::Path<uuid::Uuid>,
+) -> Result<HttpResponse, Error> {
+    let manufacturer_id = manufacturer_id.into_inner();
+    let msg = DeleteManufacturer {
+        id: manufacturer_id.clone(),
+    };
+    let result = state.db.send(msg).await.expect("Failed to contact DbActor");
+
+    if result.is_ok() {
+        Ok(HttpResponse::Ok().finish())
+    } else {
+        let res = HttpResponse::NotFound().body(format!(
+            "No manufacturer found with id: {}",
+            manufacturer_id
+        ));
+        Ok(res)
+    }
 }

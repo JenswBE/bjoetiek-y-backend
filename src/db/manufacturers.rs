@@ -1,9 +1,9 @@
 use actix::{Handler, Message};
-use diesel::prelude::*;
+use diesel::{prelude::*, result::Error::NotFound};
 use failure::Error;
 
 use super::DbActor;
-use crate::models::{Manufacturer, NewManufacturer};
+use crate::models::{Manufacturer, ManufacturerData};
 use crate::schema::manufacturers::dsl;
 
 #[derive(Debug)]
@@ -39,10 +39,10 @@ impl Handler<GetManufacturer> for DbActor {
     type Result = Result<Option<Manufacturer>, Error>;
 
     fn handle(&mut self, msg: GetManufacturer, _: &mut Self::Context) -> Self::Result {
-        let conn = &self.pool.get()?;
+        let conn = self.pool.get()?;
         let manufacturer = dsl::manufacturers
-            .filter(dsl::id.eq(&msg.id))
-            .first::<Manufacturer>(conn)
+            .find(msg.id)
+            .first::<Manufacturer>(&conn)
             .optional()?;
 
         Ok(manufacturer)
@@ -51,7 +51,7 @@ impl Handler<GetManufacturer> for DbActor {
 
 #[derive(Debug)]
 pub struct InsertManufacturer {
-    pub manufacturer: NewManufacturer,
+    pub data: ManufacturerData,
 }
 
 impl Message for InsertManufacturer {
@@ -62,10 +62,53 @@ impl Handler<InsertManufacturer> for DbActor {
     type Result = Result<Manufacturer, Error>;
 
     fn handle(&mut self, msg: InsertManufacturer, _: &mut Self::Context) -> Self::Result {
-        let conn = &self.pool.get()?;
+        let conn = self.pool.get()?;
         diesel::insert_into(dsl::manufacturers)
-            .values(msg.manufacturer)
-            .get_result(conn)
+            .values(msg.data)
+            .get_result(&conn)
+            .map_err(Error::from)
+    }
+}
+
+#[derive(Debug)]
+pub struct UpdateManufacturer {
+    pub id: uuid::Uuid,
+    pub data: ManufacturerData,
+}
+
+impl Message for UpdateManufacturer {
+    type Result = Result<Manufacturer, Error>;
+}
+
+impl Handler<UpdateManufacturer> for DbActor {
+    type Result = Result<Manufacturer, Error>;
+
+    fn handle(&mut self, msg: UpdateManufacturer, _: &mut Self::Context) -> Self::Result {
+        let conn = self.pool.get()?;
+        diesel::update(dsl::manufacturers.find(msg.id))
+            .set(msg.data)
+            .get_result(&conn)
+            .map_err(Error::from)
+    }
+}
+
+#[derive(Debug)]
+pub struct DeleteManufacturer {
+    pub id: uuid::Uuid,
+}
+
+impl Message for DeleteManufacturer {
+    type Result = Result<(), Error>;
+}
+
+impl Handler<DeleteManufacturer> for DbActor {
+    type Result = Result<(), Error>;
+
+    fn handle(&mut self, msg: DeleteManufacturer, _: &mut Self::Context) -> Self::Result {
+        let conn = self.pool.get()?;
+        diesel::delete(dsl::manufacturers.find(msg.id))
+            .execute(&conn)
+            .and_then(|c| if c > 0 { Ok(()) } else { Err(NotFound) })
             .map_err(Error::from)
     }
 }

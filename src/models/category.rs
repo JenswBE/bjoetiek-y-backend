@@ -3,9 +3,9 @@ use uuid::Uuid;
 
 use crate::schema::categories;
 
-#[derive(Debug, Clone, Serialize, Insertable)]
+#[derive(Debug, Clone, Serialize, Insertable, AsChangeset)]
 #[table_name = "categories"]
-pub struct NewCategory {
+pub struct CategoryData {
     pub name: String,
     pub description: String,
     pub image_url: String,
