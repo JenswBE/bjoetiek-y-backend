@@ -4,7 +4,8 @@ info:
   version: "1.0"
 
 servers:
-  - url: https://localhost:8090
+  - url: http://localhost:8090
+  - url: https://backend.bjoetiek-y.be
 
 paths:
   /products:
