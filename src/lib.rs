@@ -9,31 +9,35 @@ use std::env;
 use actix::{Addr, SyncArbiter};
 use actix_cors::Cors;
 use actix_files as fs;
-use actix_web::{middleware, middleware::normalize::TrailingSlash, App, HttpServer};
+use actix_web::{middleware, middleware::normalize::TrailingSlash, web, App, HttpServer};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 
+use crate::api::{auth, manufacturers};
 use crate::db::DbActor;
 
 mod api;
 mod db;
-mod models;
+pub mod models;
 mod schema;
 
 diesel_migrations::embed_migrations!();
 
 #[derive(Clone)]
 struct State {
+    creds: auth::BasicCreds,
     db: Addr<DbActor>,
 }
 
 impl State {
-    pub fn new(db: Addr<db::DbActor>) -> Self {
-        Self { db }
+    pub fn new(db: Addr<db::DbActor>, admin_username: String, admin_password: String) -> Self {
+        let creds = auth::BasicCreds::new(&admin_username, &admin_password);
+        Self { creds, db }
     }
 }
 
-pub async fn run() -> std::io::Result<()> {
+pub async fn run(config: models::Config) -> std::io::Result<()> {
     if env::var_os("RUST_LOG").is_none() {
         env::set_var("RUST_LOG", "info");
     }
@@ -55,22 +59,27 @@ pub async fn run() -> std::io::Result<()> {
 
     let db_addr = SyncArbiter::start(3, move || DbActor::new(pool.clone()));
 
-    let bind = env::var("BIND").unwrap_or("0.0.0.0:8090".to_string());
-    let state = State::new(db_addr);
+    let state = State::new(db_addr, config.admin_username, config.admin_password);
 
-    println!("Starting server at: {}", &bind);
+    log::info!("Starting server at: {}:{}", config.host, config.port);
 
     // Start HTTP server
     HttpServer::new(move || {
         App::new()
             .data(state.clone())
-            .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
-            .wrap(middleware::Logger::default())
             .wrap(Cors::permissive())
-            .service(api::manufacturers_scope("/manufacturers"))
+            .wrap(middleware::Logger::default())
+            .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
+            .service(web::scope("/public").service(manufacturers::public_scope("/manufacturers")))
+            .service(
+                web::scope("/admin")
+                    .wrap(HttpAuthentication::basic(auth::validator))
+                    .wrap(Cors::permissive())
+                    .service(manufacturers::admin_scope("/manufacturers")),
+            )
             .service(fs::Files::new("/", "docs").index_file("index.html"))
     })
-    .bind(&bind)?
+    .bind((config.host, config.port))?
     .run()
     .await
 }

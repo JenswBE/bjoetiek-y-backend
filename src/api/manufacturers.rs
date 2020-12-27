@@ -4,7 +4,13 @@ use crate::db::manufacturers::*;
 use crate::models;
 use crate::State;
 
-pub fn manufacturers_scope(path: &str) -> Scope {
+pub fn public_scope(path: &str) -> Scope {
+    web::scope(path)
+        .service(list_manufacturers)
+        .service(get_manufacturer)
+}
+
+pub fn admin_scope(path: &str) -> Scope {
     web::scope(path)
         .service(list_manufacturers)
         .service(get_manufacturer)

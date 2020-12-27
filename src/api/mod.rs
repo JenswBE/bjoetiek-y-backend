@@ -1,3 +1,2 @@
-mod manufacturers;
-
-pub use manufacturers::manufacturers_scope;
+pub mod auth;
+pub mod manufacturers;
