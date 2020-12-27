@@ -1,21 +1,21 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::schema::categories;
 
-#[derive(Debug, Clone, Serialize, Insertable, AsChangeset)]
+#[derive(Debug, Identifiable, Queryable, Serialize)]
 #[table_name = "categories"]
-pub struct CategoryData {
+pub struct Category {
+    pub id: Uuid,
     pub name: String,
     pub description: String,
     pub image_url: String,
     pub sort_order: i16,
 }
 
-#[derive(Identifiable, Queryable)]
+#[derive(Debug, Insertable, AsChangeset, Deserialize)]
 #[table_name = "categories"]
-pub struct Category {
-    pub id: Uuid,
+pub struct CategoryData {
     pub name: String,
     pub description: String,
     pub image_url: String,

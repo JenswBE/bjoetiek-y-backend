@@ -1,3 +1,4 @@
+pub mod categories;
 pub mod manufacturers;
 pub mod products;
 

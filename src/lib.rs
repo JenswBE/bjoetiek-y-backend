@@ -14,7 +14,7 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 
-use crate::api::{auth, manufacturers};
+use crate::api::{auth, categories, manufacturers, products};
 use crate::db::DbActor;
 
 mod api;
@@ -70,12 +70,19 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
             .wrap(Cors::permissive())
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
-            .service(web::scope("/public").service(manufacturers::public_scope("/manufacturers")))
+            .service(
+                web::scope("/public")
+                    .service(categories::public_scope("/categories"))
+                    .service(manufacturers::public_scope("/manufacturers"))
+                    .service(products::public_scope("/products")),
+            )
             .service(
                 web::scope("/admin")
                     .wrap(HttpAuthentication::basic(auth::validator))
                     .wrap(Cors::permissive())
-                    .service(manufacturers::admin_scope("/manufacturers")),
+                    .service(categories::admin_scope("/categories"))
+                    .service(manufacturers::admin_scope("/manufacturers"))
+                    .service(products::admin_scope("/products")),
             )
             .service(fs::Files::new("/", "docs").index_file("index.html"))
     })
