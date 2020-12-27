@@ -7,13 +7,17 @@ extern crate diesel_migrations;
 use std::env;
 
 use actix::{Addr, SyncArbiter};
+use actix_cors::Cors;
 use actix_files as fs;
-use actix_web::{get, middleware, post, web, web::Data, App, Error, HttpResponse, HttpServer};
+use actix_web::{
+    get, middleware, middleware::normalize::TrailingSlash, post, web, web::Data, App, Error,
+    HttpResponse, HttpServer,
+};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use uuid::Uuid;
 
-use crate::db::{DbActor, GetManufacturer, InsertManufacturer};
+use crate::db::{DbActor, GetManufacturer, InsertManufacturer, ListManufacturers};
 
 mod db;
 mod models;
@@ -21,8 +25,20 @@ mod schema;
 
 diesel_migrations::embed_migrations!();
 
-/// Finds manufacturer by UID.
-#[get("/manufacturer/{manufacturer_id}")]
+/// List all manufacturers
+#[get("/manufacturers")]
+async fn list_manufacturers(state: Data<State>) -> Result<HttpResponse, Error> {
+    let manufacturers = state
+        .db
+        .send(ListManufacturers {})
+        .await
+        .expect("Failed to contact DbActor")
+        .expect("Failed to fetch manufacturer");
+    Ok(HttpResponse::Ok().json(manufacturers))
+}
+
+/// Find manufacturer by UID
+#[get("/manufacturers/{manufacturer_id}")]
 async fn get_manufacturer(
     state: Data<State>,
     manufacturer_uid: web::Path<Uuid>,
@@ -48,7 +64,7 @@ async fn get_manufacturer(
     }
 }
 
-/// Inserts new manufacturer with name defined in form.
+/// Insert new manufacturer from form
 #[post("/manufacturers")]
 async fn add_manufacturer(
     state: Data<State>,
@@ -109,7 +125,10 @@ pub async fn run() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(state.clone())
+            .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
             .wrap(middleware::Logger::default())
+            .wrap(Cors::permissive())
+            .service(list_manufacturers)
             .service(get_manufacturer)
             .service(add_manufacturer)
             .service(fs::Files::new("/", "docs").index_file("index.html"))
