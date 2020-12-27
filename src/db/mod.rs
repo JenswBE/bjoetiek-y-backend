@@ -1,7 +1,5 @@
-mod manufacturers;
-mod products;
-
-pub use self::{manufacturers::*, products::*};
+pub mod manufacturers;
+pub mod products;
 
 use actix::{Actor, SyncContext};
 use diesel::r2d2::{ConnectionManager, Pool};
