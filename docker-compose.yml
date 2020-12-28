@@ -6,6 +6,8 @@ services:
     container_name: backend
     environment:
       - "TZ=${TIMEZONE}"
+      - "ADMIN_USERNAME=${ADMIN_USERNAME}"
+      - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
       - "DATABASE_URL=postgres://bjoetiek:bjoetiek@db/bjoetiek"
       - "RUST_LOG=debug"
     networks:
