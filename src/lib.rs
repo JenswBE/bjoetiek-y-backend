@@ -42,7 +42,6 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
         env::set_var("RUST_LOG", "info");
     }
     pretty_env_logger::init();
-    dotenv::dotenv().ok();
 
     // set up database connection pool
     let connspec = std::env::var("DATABASE_URL").expect("DATABASE_URL");
@@ -67,9 +66,6 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(state.clone())
-            .wrap(Cors::permissive())
-            .wrap(middleware::Logger::default())
-            .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
             .service(
                 web::scope("/public")
                     .service(categories::public_scope("/categories"))
@@ -79,11 +75,13 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
             .service(
                 web::scope("/admin")
                     .wrap(HttpAuthentication::basic(auth::validator))
-                    .wrap(Cors::permissive())
                     .service(categories::admin_scope("/categories"))
                     .service(manufacturers::admin_scope("/manufacturers"))
                     .service(products::admin_scope("/products")),
             )
+            .wrap(Cors::permissive().allow_any_origin())
+            .wrap(middleware::Logger::default())
+            .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
             .service(fs::Files::new("/", "docs").index_file("index.html"))
     })
     .bind((config.host, config.port))?
