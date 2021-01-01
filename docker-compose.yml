@@ -10,6 +10,7 @@ services:
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
       - "DATABASE_URL=postgres://bjoetiek:bjoetiek@db/bjoetiek"
       - "RUST_LOG=debug"
+      - "RUST_BACKTRACE=1"
     networks:
       - bjoetiek
     ports:
@@ -17,7 +18,7 @@ services:
 
   db:
     image: postgres:13-alpine
-    container_name: bjoetiek-db
+    container_name: db
     environment:
       - "TZ=${TIMEZONE}"
       - "POSTGRES_USER=bjoetiek"
