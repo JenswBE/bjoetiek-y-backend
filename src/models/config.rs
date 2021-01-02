@@ -1,4 +1,4 @@
-use std::{env, net::IpAddr};
+use std::{env, net::IpAddr, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -6,6 +6,7 @@ pub struct Config {
     pub port: u16,
     pub admin_username: String,
     pub admin_password: String,
+    pub images_path: PathBuf,
 }
 
 impl Config {
@@ -15,20 +16,8 @@ impl Config {
             port: parse_port("BIND_PORT", 8090),
             admin_username: parse_required_string("ADMIN_USERNAME"),
             admin_password: parse_required_string("ADMIN_PASSWORD"),
+            images_path: parse_required_pathbuf("IMAGES_PATH"),
         }
-    }
-}
-
-pub fn parse_string(env_var: &str, default: &str) -> String {
-    env::var(env_var).unwrap_or(default.to_string())
-}
-
-pub fn parse_required_string(env_var: &str) -> String {
-    let value = parse_string(env_var, "");
-    if value != "" {
-        value
-    } else {
-        panic!("Setting {} is mandatory and should not be empty", env_var)
     }
 }
 
@@ -50,4 +39,23 @@ pub fn parse_port(env_var: &str, default: u16) -> u16 {
     } else {
         default
     }
+}
+
+pub fn parse_string(env_var: &str, default: &str) -> String {
+    env::var(env_var).unwrap_or(default.to_string())
+}
+
+pub fn parse_required_string(env_var: &str) -> String {
+    let value = parse_string(env_var, "");
+    if value != "" {
+        value
+    } else {
+        panic!("Setting {} is mandatory and should not be empty", env_var)
+    }
+}
+
+pub fn parse_required_pathbuf(env_var: &str) -> PathBuf {
+    let path = parse_required_string(env_var);
+    path.parse()
+        .unwrap_or_else(|_| panic!("Provided {} is not a valid path: {}", env_var, path))
 }
