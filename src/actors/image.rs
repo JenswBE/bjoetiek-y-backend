@@ -1,8 +1,7 @@
-use std::io::Error;
-use std::io::Write;
 use std::path::PathBuf;
 
 use actix::{Actor, Context, Handler, Message};
+use failure::Error;
 
 pub struct ImageActor {
     path: PathBuf,
@@ -40,8 +39,10 @@ impl Handler<UploadImage> for ImageActor {
         image_path.push(msg.id.to_string());
         image_path.set_extension("png");
 
-        // Write file
-        let mut f = std::fs::File::create(image_path)?;
-        f.write_all(&msg.data)
+        // Load file into VIPS and write as png
+        let image = libvips::VipsImage::new_from_buffer(&msg.data, "").map_err(Error::from)?;
+        image
+            .image_write_to_file(image_path.to_str().unwrap())
+            .map_err(Error::from)
     }
 }

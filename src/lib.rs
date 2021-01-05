@@ -80,6 +80,7 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
                     .service(products::admin_scope("/products")),
             )
             .wrap(Cors::permissive().allow_any_origin())
+            .wrap(middleware::DefaultHeaders::new().header("Content-Type", "text/plain"))
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
             .service(fs::Files::new("/", "docs").index_file("index.html"))

@@ -35,12 +35,20 @@ async fn upload_image(
             id: image_id.into_inner(),
             data: image,
         };
-        state
+        let result = state
             .image
             .send(msg)
             .await
-            .expect("Failed to call ImageActor")
-            .expect("Failed to write file");
+            .expect("Failed to call ImageActor");
+
+        // Handle and translate errors
+        if let Err(e) = result {
+            if let Some(libvips::error::Error::InitializationError(_)) = e.downcast_ref() {
+                return Ok(HttpResponse::BadRequest().body("Image format not supported"));
+            } else {
+                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            }
+        }
     }
     Ok(HttpResponse::Ok().into())
 }
