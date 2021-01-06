@@ -15,7 +15,7 @@ RUN cargo fetch
 COPY src src
 COPY diesel.toml .
 COPY migrations migrations
-RUN cargo test --offline
+# RUN cargo test --offline
 RUN cargo build --release --offline
 
 # Build final image
