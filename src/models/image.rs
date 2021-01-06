@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct ThumbnailRequest {
+pub struct Thumbnail {
     /// Max width of thumbnail
     pub width: i32,
 

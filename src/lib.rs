@@ -6,7 +6,7 @@ extern crate diesel_migrations;
 
 use std::env;
 
-use actix::{Actor, Addr, SyncArbiter};
+use actix::{Addr, SyncArbiter};
 use actix_cors::Cors;
 use actix_files as fs;
 use actix_web::{middleware, middleware::normalize::TrailingSlash, web, App, HttpServer};
@@ -54,11 +54,15 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
     }
 
     // Build state
+    let images_path = config.images_path.clone();
     let state = State {
         creds: auth::BasicCreds::new(&config.admin_username, &config.admin_password),
         db: SyncArbiter::start(3, move || DbActor::new(pool.clone())),
-        image: ImageActor::new(config.images_path).start(),
+        image: SyncArbiter::start(3, move || ImageActor::new(images_path.clone())),
     };
+
+    // Initialise libvips
+    let _app = libvips::VipsApp::new("Bjoetiek Libvips", true).expect("Cannot initialize libvips");
 
     // Start HTTP server
     log::info!("Starting server at: {}:{}", config.host, config.port);

@@ -1,17 +1,14 @@
 // Based on https://github.com/actix/examples/blob/master/multipart/src/main.rs
 
 use actix_multipart::Multipart;
-use actix_web::{post, put, web, Error, HttpResponse, Scope};
+use actix_web::{put, web, Error, HttpResponse, Scope};
 use futures::{StreamExt, TryStreamExt};
 
 use crate::actors::UploadImage;
-use crate::models;
 use crate::State;
 
 pub fn admin_scope(path: &str) -> Scope {
-    web::scope(path)
-        .service(upload_image)
-        .service(generate_thumbnail)
+    web::scope(path).service(upload_image)
 }
 
 /// Upload a new image
@@ -51,13 +48,4 @@ async fn upload_image(
         }
     }
     Ok(HttpResponse::Ok().into())
-}
-
-/// Generate a thumbnail for an existing image
-#[post("/{image_id}/thumbnail")]
-async fn generate_thumbnail(
-    state: web::Data<State>,
-    form: web::Json<models::ThumbnailRequest>,
-) -> Result<HttpResponse, Error> {
-    return Ok(HttpResponse::Ok().into());
 }
