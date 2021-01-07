@@ -3,9 +3,6 @@ FROM rust:1 AS builder
 # Fetch dependencies
 ENV USER=root
 WORKDIR /code
-RUN apt-get update && \
-    apt-get install -qq --no-install-recommends \
-    libvips-dev
 RUN cargo init
 COPY Cargo.toml .
 COPY Cargo.lock .
@@ -22,8 +19,7 @@ RUN cargo build --release --offline
 FROM rust:1-slim-buster
 RUN apt-get update && \
     apt-get install -qq --no-install-recommends\
-    libpq5 \
-    libvips
+    libpq5
 EXPOSE 8090
 COPY docs docs
 COPY --from=builder /code/target/release/bjoetiek .

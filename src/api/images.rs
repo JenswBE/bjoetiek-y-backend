@@ -40,7 +40,7 @@ async fn upload_image(
 
         // Handle and translate errors
         if let Err(e) = result {
-            if let Some(libvips::error::Error::InitializationError(_)) = e.downcast_ref() {
+            if let Some(image::error::ImageError::Unsupported(_)) = e.downcast_ref() {
                 return Ok(HttpResponse::BadRequest().body("Image format not supported"));
             } else {
                 return Ok(HttpResponse::InternalServerError().body(e.to_string()));

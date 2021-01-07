@@ -2,20 +2,19 @@ use std::path::PathBuf;
 
 use actix::{Actor, Handler, Message, SyncContext};
 use failure::{format_err, Error};
+use image::imageops::FilterType;
 use uuid::Uuid;
 
-use crate::models::Thumbnail;
-
-const ICC_PROFILE: &'static str = "sRGB";
-const THUMBNAILS: [Thumbnail; 2] = thumbnails();
-const fn thumbnails() -> [Thumbnail; 2] {
+const SAMPLING_FILTER: FilterType = FilterType::Lanczos3;
+const THUMBNAIL_SPECS: [ThumbnailSpec; 2] = thumbnail_specs();
+const fn thumbnail_specs() -> [ThumbnailSpec; 2] {
     [
-        Thumbnail {
+        ThumbnailSpec {
             width: 400,
             height: 100,
             fill: false,
         },
-        Thumbnail {
+        ThumbnailSpec {
             width: 100,
             height: 400,
             fill: true,
@@ -59,10 +58,10 @@ impl Handler<UploadImage> for ImageActor {
     type Result = Result<(), Error>;
 
     fn handle(&mut self, msg: UploadImage, context: &mut Self::Context) -> Self::Result {
-        // Load file into VIPS and write as png
+        // Load image and write as png
         let path = self.get_image_path(msg.id).to_string_lossy().to_string();
-        let image = libvips::VipsImage::new_from_buffer(&msg.data, "").map_err(Error::from)?;
-        image.image_write_to_file(&path).map_err(Error::from)?;
+        let image = image::load_from_memory(&msg.data).map_err(Error::from)?;
+        image.save(path).map_err(Error::from)?;
 
         // Request thumbnail creation
         context
@@ -72,67 +71,67 @@ impl Handler<UploadImage> for ImageActor {
     }
 }
 
+struct ThumbnailSpec {
+    /// Max width of thumbnail
+    pub width: u32,
+
+    /// Max height of thumbnail
+    pub height: u32,
+
+    /// Crop image to fill width and height completely
+    pub fill: bool,
+}
+
 pub struct GenerateThumbnails {
     pub id: Uuid,
 }
 
 impl Message for GenerateThumbnails {
-    type Result = ();
+    type Result = Result<(), Error>;
 }
 
 impl Handler<GenerateThumbnails> for ImageActor {
-    type Result = ();
+    type Result = Result<(), Error>;
 
     fn handle(&mut self, msg: GenerateThumbnails, _: &mut Self::Context) -> Self::Result {
         let image_path = self.get_image_path(msg.id);
-        for thumbnail in &THUMBNAILS {
-            // Build thumbnail options
-            let mut options = libvips::ops::ThumbnailOptions::default();
-            options.height = thumbnail.height;
-            options.import_profile = ICC_PROFILE.to_string();
-            options.export_profile = ICC_PROFILE.to_string();
-            if thumbnail.fill {
-                options.crop = libvips::ops::Interesting::Centre;
-            }
+        for spec in &THUMBNAIL_SPECS {
+            // Load image from file
+            let img = image::open(&image_path).map_err(|e| {
+                log::error!("Failed to generate thumbnail for {:?}: {}", image_path, e);
+                return Error::from(e);
+            })?;
 
-            // Generate thumbnail from file
-            let img_path_str = image_path
-                .canonicalize()
-                .unwrap()
-                .to_string_lossy()
-                .to_string();
-            let image = libvips::ops::thumbnail_with_opts(&img_path_str, thumbnail.width, &options)
-                .map_err(|e| {
-                    log::error!("Failed to generate thumbnail for {}: {}", img_path_str, e)
-                });
-            let image = if let Ok(i) = image { i } else { return };
+            // Generate thumbnail
+            let thumbnail = if spec.fill {
+                img.resize_to_fill(spec.width, spec.height, SAMPLING_FILTER)
+            } else {
+                img.resize(spec.width, spec.height, SAMPLING_FILTER)
+            };
 
             // Build filename
-            let fill_fit = if thumbnail.fill { "fill" } else { "fit" };
-            let file_name = format!(
+            let fill_fit = if spec.fill { "fill" } else { "fit" };
+            let thumbnail_name = format!(
                 "{}-{}-{}-{}.{}",
                 msg.id,
-                thumbnail.width,
-                thumbnail.height,
+                spec.width,
+                spec.height,
                 fill_fit,
                 image_path.extension().unwrap().to_string_lossy(),
             );
-            let thumbnail_path = image_path
-                .with_file_name(file_name)
-                .to_string_lossy()
-                .to_string();
+            let thumbnail_path = image_path.with_file_name(thumbnail_name);
 
             // Write thumbnail as png
-            image
-                .image_write_to_file(&thumbnail_path)
-                .map_err(|e| {
-                    log::error!(
-                        "Failed to write thumbnail to file {}: {}",
-                        thumbnail_path,
-                        e
-                    )
-                })
-                .ok();
+            thumbnail.save(&thumbnail_path).map_err(|e| {
+                log::error!(
+                    "Failed to write thumbnail to file {:?}: {}",
+                    thumbnail_path,
+                    e
+                );
+                Error::from(e)
+            })?;
         }
+
+        Ok(())
     }
 }

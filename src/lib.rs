@@ -61,9 +61,6 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
         image: SyncArbiter::start(3, move || ImageActor::new(images_path.clone())),
     };
 
-    // Initialise libvips
-    let _app = libvips::VipsApp::new("Bjoetiek Libvips", true).expect("Cannot initialize libvips");
-
     // Start HTTP server
     log::info!("Starting server at: {}:{}", config.host, config.port);
     HttpServer::new(move || {
