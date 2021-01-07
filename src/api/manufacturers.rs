@@ -1,5 +1,6 @@
 use actix_web::{delete, get, post, put, web, Error, HttpResponse, Scope};
 
+use crate::actors::DeleteImage;
 use crate::db::manufacturers::*;
 use crate::models;
 use crate::State;
@@ -115,6 +116,13 @@ async fn delete_manufacturer(
     let result = state.db.send(msg).await.expect("Failed to contact DbActor");
 
     if result.is_ok() {
+        // Request deletion of image and thumbnails
+        let msg = DeleteImage {
+            id: manufacturer_id,
+        };
+        state.image.do_send(msg);
+
+        // Send success response
         Ok(HttpResponse::Ok().finish())
     } else {
         let res = HttpResponse::NotFound().body(format!(

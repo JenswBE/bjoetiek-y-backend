@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::PathBuf;
 
 use actix::{Actor, Handler, Message, SyncContext};
@@ -128,6 +129,53 @@ impl Handler<GenerateThumbnails> for ImageActor {
             })?;
         }
 
+        Ok(())
+    }
+}
+
+pub struct DeleteImage {
+    pub id: Uuid,
+}
+
+impl Message for DeleteImage {
+    type Result = Result<(), Error>;
+}
+
+impl Handler<DeleteImage> for ImageActor {
+    type Result = Result<(), Error>;
+
+    fn handle(&mut self, msg: DeleteImage, _: &mut Self::Context) -> Self::Result {
+        // Get directory entries
+        let entries = fs::read_dir(&self.path).map_err(|e| {
+            log::warn!("Failed to read images directory to delete image: {}", e);
+            Error::from(e)
+        })?;
+
+        // Find and delete image and thumbnails
+        for entry in entries {
+            // Skip entry on error
+            if entry.is_err() {
+                log::info!(
+                    "Failed to read images directory entry: {}",
+                    entry.unwrap_err()
+                );
+                continue;
+            }
+
+            // Check if related
+            let entry = entry.unwrap();
+            let is_related = entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(&msg.id.to_string());
+
+            // Delete file if image or thumbnail
+            if is_related {
+                if let Err(e) = fs::remove_file(entry.path()) {
+                    log::warn!("Failed to delete image at {:?}: {}", entry.path(), e);
+                }
+            }
+        }
         Ok(())
     }
 }

@@ -1,5 +1,6 @@
 use actix_web::{delete, get, post, put, web, Error, HttpResponse, Scope};
 
+use crate::actors::DeleteImage;
 use crate::db::categories::*;
 use crate::models;
 use crate::State;
@@ -50,10 +51,8 @@ async fn get_category(
     if let Some(category) = category {
         Ok(HttpResponse::Ok().json(category))
     } else {
-        let res = HttpResponse::NotFound().body(format!(
-            "No category found with id: {}",
-            category_id
-        ));
+        let res =
+            HttpResponse::NotFound().body(format!("No category found with id: {}", category_id));
         Ok(res)
     }
 }
@@ -94,10 +93,8 @@ async fn update_category(
     if let Ok(category) = category {
         Ok(HttpResponse::Ok().json(category))
     } else {
-        let res = HttpResponse::NotFound().body(format!(
-            "No category found with id: {}",
-            category_id
-        ));
+        let res =
+            HttpResponse::NotFound().body(format!("No category found with id: {}", category_id));
         Ok(res)
     }
 }
@@ -115,12 +112,15 @@ async fn delete_category(
     let result = state.db.send(msg).await.expect("Failed to contact DbActor");
 
     if result.is_ok() {
+        // Request deletion of image and thumbnails
+        let msg = DeleteImage { id: category_id };
+        state.image.do_send(msg);
+
+        // Send success response
         Ok(HttpResponse::Ok().finish())
     } else {
-        let res = HttpResponse::NotFound().body(format!(
-            "No category found with id: {}",
-            category_id
-        ));
+        let res =
+            HttpResponse::NotFound().body(format!("No category found with id: {}", category_id));
         Ok(res)
     }
 }

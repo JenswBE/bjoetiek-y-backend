@@ -1,13 +1,12 @@
 use actix_web::{delete, get, post, put, web, Error, HttpResponse, Scope};
 
+use crate::actors::DeleteImage;
 use crate::db::products::*;
 use crate::models;
 use crate::State;
 
 pub fn public_scope(path: &str) -> Scope {
-    web::scope(path)
-        .service(list_products)
-        .service(get_product)
+    web::scope(path).service(list_products).service(get_product)
 }
 
 pub fn admin_scope(path: &str) -> Scope {
@@ -50,10 +49,8 @@ async fn get_product(
     if let Some(product) = product {
         Ok(HttpResponse::Ok().json(product))
     } else {
-        let res = HttpResponse::NotFound().body(format!(
-            "No product found with id: {}",
-            product_id
-        ));
+        let res =
+            HttpResponse::NotFound().body(format!("No product found with id: {}", product_id));
         Ok(res)
     }
 }
@@ -94,10 +91,8 @@ async fn update_product(
     if let Ok(product) = product {
         Ok(HttpResponse::Ok().json(product))
     } else {
-        let res = HttpResponse::NotFound().body(format!(
-            "No product found with id: {}",
-            product_id
-        ));
+        let res =
+            HttpResponse::NotFound().body(format!("No product found with id: {}", product_id));
         Ok(res)
     }
 }
@@ -115,12 +110,15 @@ async fn delete_product(
     let result = state.db.send(msg).await.expect("Failed to contact DbActor");
 
     if result.is_ok() {
+        // Request deletion of image and thumbnails
+        let msg = DeleteImage { id: product_id };
+        state.image.do_send(msg);
+
+        // Send success response
         Ok(HttpResponse::Ok().finish())
     } else {
-        let res = HttpResponse::NotFound().body(format!(
-            "No product found with id: {}",
-            product_id
-        ));
+        let res =
+            HttpResponse::NotFound().body(format!("No product found with id: {}", product_id));
         Ok(res)
     }
 }
