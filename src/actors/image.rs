@@ -6,18 +6,14 @@ use image::imageops::FilterType;
 use uuid::Uuid;
 
 const SAMPLING_FILTER: FilterType = FilterType::Lanczos3;
-const THUMBNAIL_SPECS: [ThumbnailSpec; 2] = thumbnail_specs();
-const fn thumbnail_specs() -> [ThumbnailSpec; 2] {
+const THUMBNAIL_SPECS: [ThumbnailSpec; 1] = thumbnail_specs();
+const fn thumbnail_specs() -> [ThumbnailSpec; 1] {
     [
-        ThumbnailSpec {
-            width: 400,
-            height: 100,
-            fill: false,
-        },
+        // General admin
         ThumbnailSpec {
             width: 100,
-            height: 400,
-            fill: true,
+            height: 100,
+            fill: false,
         },
     ]
 }
