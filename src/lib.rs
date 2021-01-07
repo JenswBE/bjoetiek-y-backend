@@ -84,6 +84,7 @@ pub async fn run(config: models::Config) -> std::io::Result<()> {
             .wrap(middleware::DefaultHeaders::new().header("Content-Type", "text/plain"))
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::new(TrailingSlash::Trim))
+            .service(fs::Files::new("/images", "images"))
             .service(fs::Files::new("/", "docs").index_file("index.html"))
     })
     .bind((config.host, config.port))?
