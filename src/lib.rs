@@ -24,6 +24,8 @@ mod db;
 pub mod models;
 mod schema;
 
+pub use models::Config;
+
 diesel_migrations::embed_migrations!();
 
 #[derive(Clone)]
@@ -33,7 +35,7 @@ struct State {
     pub image: Addr<ImageActor>,
 }
 
-pub async fn run(config: models::Config) -> std::io::Result<()> {
+pub async fn run(config: Config) -> std::io::Result<()> {
     if env::var_os("RUST_LOG").is_none() {
         env::set_var("RUST_LOG", "info");
     }
