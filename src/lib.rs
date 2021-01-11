@@ -29,7 +29,7 @@ pub use models::Config;
 diesel_migrations::embed_migrations!();
 
 #[derive(Clone)]
-struct State {
+struct Context {
     pub creds: auth::BasicCreds,
     pub db: Addr<DbActor>,
     pub image: Addr<ImageActor>,
@@ -57,7 +57,7 @@ pub async fn run(config: Config) -> std::io::Result<()> {
 
     // Build state
     let images_path = config.images_path.clone();
-    let state = State {
+    let ctx = Context {
         creds: auth::BasicCreds::new(&config.admin_username, &config.admin_password),
         db: SyncArbiter::start(3, move || DbActor::new(pool.clone())),
         image: SyncArbiter::start(3, move || ImageActor::new(images_path.clone())),
@@ -67,7 +67,7 @@ pub async fn run(config: Config) -> std::io::Result<()> {
     log::info!("Starting server at: {}:{}", config.host, config.port);
     HttpServer::new(move || {
         App::new()
-            .data(state.clone())
+            .data(ctx.clone())
             .service(
                 web::scope("/public")
                     .service(categories::public_scope("/categories"))

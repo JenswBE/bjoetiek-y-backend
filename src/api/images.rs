@@ -5,7 +5,7 @@ use actix_web::{put, web, Error, HttpResponse, Scope};
 use futures::{StreamExt, TryStreamExt};
 
 use crate::actors::UploadImage;
-use crate::State;
+use crate::Context;
 
 pub fn admin_scope(path: &str) -> Scope {
     web::scope(path).service(upload_image)
@@ -14,7 +14,7 @@ pub fn admin_scope(path: &str) -> Scope {
 /// Upload a new image
 #[put("/{image_id}")]
 async fn upload_image(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     image_id: web::Path<uuid::Uuid>,
     mut payload: Multipart,
 ) -> Result<HttpResponse, Error> {
@@ -32,7 +32,7 @@ async fn upload_image(
             id: image_id.into_inner(),
             data: image,
         };
-        let result = state
+        let result = ctx
             .image
             .send(msg)
             .await

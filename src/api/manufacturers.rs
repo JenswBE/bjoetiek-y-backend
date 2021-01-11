@@ -3,7 +3,7 @@ use actix_web::{delete, get, post, put, web, Error, HttpResponse, Scope};
 use crate::actors::DeleteImage;
 use crate::db::manufacturers::*;
 use crate::models;
-use crate::State;
+use crate::Context;
 
 pub fn public_scope(path: &str) -> Scope {
     web::scope(path)
@@ -22,8 +22,8 @@ pub fn admin_scope(path: &str) -> Scope {
 
 /// List all manufacturers
 #[get("")]
-async fn list_manufacturers(state: web::Data<State>) -> Result<HttpResponse, Error> {
-    let manufacturers = state
+async fn list_manufacturers(ctx: web::Data<Context>) -> Result<HttpResponse, Error> {
+    let manufacturers = ctx
         .db
         .send(ListManufacturers {})
         .await
@@ -35,14 +35,14 @@ async fn list_manufacturers(state: web::Data<State>) -> Result<HttpResponse, Err
 /// Find manufacturer by ID
 #[get("/{manufacturer_id}")]
 async fn get_manufacturer(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     manufacturer_id: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, Error> {
     let manufacturer_id = manufacturer_id.into_inner();
     let msg = GetManufacturer {
         id: manufacturer_id.clone(),
     };
-    let manufacturer = state
+    let manufacturer = ctx
         .db
         .send(msg)
         .await
@@ -62,13 +62,13 @@ async fn get_manufacturer(
 /// Insert new manufacturer from form
 #[post("")]
 async fn add_manufacturer(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     form: web::Json<models::ManufacturerData>,
 ) -> Result<HttpResponse, Error> {
     let msg = InsertManufacturer {
         data: form.into_inner(),
     };
-    let manufacturer = state
+    let manufacturer = ctx
         .db
         .send(msg)
         .await
@@ -81,7 +81,7 @@ async fn add_manufacturer(
 /// Update manufacturer from form
 #[put("/{manufacturer_id}")]
 async fn update_manufacturer(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     manufacturer_id: web::Path<uuid::Uuid>,
     form: web::Json<models::ManufacturerData>,
 ) -> Result<HttpResponse, Error> {
@@ -90,7 +90,7 @@ async fn update_manufacturer(
         id: manufacturer_id.clone(),
         data: form.into_inner(),
     };
-    let manufacturer = state.db.send(msg).await.expect("Failed to contact DbActor");
+    let manufacturer = ctx.db.send(msg).await.expect("Failed to contact DbActor");
 
     if let Ok(manufacturer) = manufacturer {
         Ok(HttpResponse::Ok().json(manufacturer))
@@ -106,21 +106,21 @@ async fn update_manufacturer(
 /// Delete manufacturer with ID
 #[delete("/{manufacturer_id}")]
 async fn delete_manufacturer(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     manufacturer_id: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, Error> {
     let manufacturer_id = manufacturer_id.into_inner();
     let msg = DeleteManufacturer {
         id: manufacturer_id.clone(),
     };
-    let result = state.db.send(msg).await.expect("Failed to contact DbActor");
+    let result = ctx.db.send(msg).await.expect("Failed to contact DbActor");
 
     if result.is_ok() {
         // Request deletion of image and thumbnails
         let msg = DeleteImage {
             id: manufacturer_id,
         };
-        state.image.do_send(msg);
+        ctx.image.do_send(msg);
 
         // Send success response
         Ok(HttpResponse::Ok().finish())

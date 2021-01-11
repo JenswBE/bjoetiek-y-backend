@@ -3,7 +3,7 @@ use actix_web::{delete, get, post, put, web, Error, HttpResponse, Scope};
 use crate::actors::DeleteImage;
 use crate::db::products::*;
 use crate::models;
-use crate::State;
+use crate::Context;
 
 pub fn public_scope(path: &str) -> Scope {
     web::scope(path).service(list_products).service(get_product)
@@ -20,8 +20,8 @@ pub fn admin_scope(path: &str) -> Scope {
 
 /// List all products
 #[get("")]
-async fn list_products(state: web::Data<State>) -> Result<HttpResponse, Error> {
-    let products = state
+async fn list_products(ctx: web::Data<Context>) -> Result<HttpResponse, Error> {
+    let products = ctx
         .db
         .send(ListProducts {})
         .await
@@ -33,14 +33,14 @@ async fn list_products(state: web::Data<State>) -> Result<HttpResponse, Error> {
 /// Find product by ID
 #[get("/{product_id}")]
 async fn get_product(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     product_id: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, Error> {
     let product_id = product_id.into_inner();
     let msg = GetProduct {
         id: product_id.clone(),
     };
-    let product = state
+    let product = ctx
         .db
         .send(msg)
         .await
@@ -58,13 +58,13 @@ async fn get_product(
 /// Insert new product from form
 #[post("")]
 async fn add_product(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     form: web::Json<models::ProductData>,
 ) -> Result<HttpResponse, Error> {
     let msg = InsertProduct {
         data: form.into_inner(),
     };
-    let product = state
+    let product = ctx
         .db
         .send(msg)
         .await
@@ -77,7 +77,7 @@ async fn add_product(
 /// Update product from form
 #[put("/{product_id}")]
 async fn update_product(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     product_id: web::Path<uuid::Uuid>,
     form: web::Json<models::ProductData>,
 ) -> Result<HttpResponse, Error> {
@@ -86,7 +86,7 @@ async fn update_product(
         id: product_id.clone(),
         data: form.into_inner(),
     };
-    let product = state.db.send(msg).await.expect("Failed to contact DbActor");
+    let product = ctx.db.send(msg).await.expect("Failed to contact DbActor");
 
     if let Ok(product) = product {
         Ok(HttpResponse::Ok().json(product))
@@ -100,19 +100,19 @@ async fn update_product(
 /// Delete product with ID
 #[delete("/{product_id}")]
 async fn delete_product(
-    state: web::Data<State>,
+    ctx: web::Data<Context>,
     product_id: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, Error> {
     let product_id = product_id.into_inner();
     let msg = DeleteProduct {
         id: product_id.clone(),
     };
-    let result = state.db.send(msg).await.expect("Failed to contact DbActor");
+    let result = ctx.db.send(msg).await.expect("Failed to contact DbActor");
 
     if result.is_ok() {
         // Request deletion of image and thumbnails
         let msg = DeleteImage { id: product_id };
-        state.image.do_send(msg);
+        ctx.image.do_send(msg);
 
         // Send success response
         Ok(HttpResponse::Ok().finish())
