@@ -9,7 +9,6 @@ pub struct Category {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-    pub image_url: String,
     pub sort_order: i16,
 }
 
@@ -18,7 +17,6 @@ pub struct Category {
 pub struct CategoryData {
     pub name: String,
     pub description: String,
-    pub image_url: String,
     pub sort_order: i16,
 }
 

@@ -3,7 +3,6 @@ table! {
         id -> Uuid,
         name -> Text,
         description -> Text,
-        image_url -> Text,
         sort_order -> Int2,
     }
 }
@@ -20,7 +19,6 @@ table! {
         id -> Uuid,
         name -> Text,
         website_url -> Text,
-        logo_url -> Text,
     }
 }
 

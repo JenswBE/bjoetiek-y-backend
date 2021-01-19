@@ -8,7 +8,6 @@ pub struct Manufacturer {
     pub id: Uuid,
     pub name: String,
     pub website_url: String,
-    pub logo_url: String,
 }
 
 #[derive(Debug, Insertable, AsChangeset, Deserialize)]
@@ -16,5 +15,4 @@ pub struct Manufacturer {
 pub struct ManufacturerData {
     pub name: String,
     pub website_url: String,
-    pub logo_url: String,
 }

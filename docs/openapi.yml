@@ -439,9 +439,8 @@ components:
               enum:
                 - AVAILABLE
                 - ARCHIVED
-            image_url:
-              type: string
-              format: url
+            stock_count:
+              type: integer
 
     Manufacturer:
       allOf:
@@ -455,10 +454,6 @@ components:
               type: string
               format: url
               example: https://bjoetiek-y.be
-            logo_url:
-              type: string
-              format: url
-              example: bjoetiek-y.jpg
 
     Category:
       allOf:
@@ -470,10 +465,6 @@ components:
               example: Makeup & Cosmetica
             description:
               type: string
-            image_url:
-              type: string
-              format: url
-              example: makeup-cosmetica.jpg
             sort_order:
               description: Should be sorted ascending by this column
               type: integer
