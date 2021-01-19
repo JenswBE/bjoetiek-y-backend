@@ -16,7 +16,7 @@ pub struct Product {
     pub price: i32,
     pub manufacturer_id: Option<Uuid>,
     pub status: String,
-    pub image_url: String,
+    pub stock_count: i32,
 }
 
 #[derive(Debug, Insertable, AsChangeset, Deserialize)]
@@ -29,5 +29,5 @@ pub struct ProductData {
     pub price: i32,
     pub manufacturer_id: Option<Uuid>,
     pub status: String,
-    pub image_url: String,
+    pub stock_count: i32,
 }

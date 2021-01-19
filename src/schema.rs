@@ -36,7 +36,7 @@ table! {
         price -> Int4,
         manufacturer_id -> Nullable<Uuid>,
         status -> Text,
-        image_url -> Text,
+        stock_count -> Int4,
     }
 }
 
