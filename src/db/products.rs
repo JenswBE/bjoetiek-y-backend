@@ -1,28 +1,45 @@
 use actix::{Handler, Message};
 use diesel::{prelude::*, result::Error::NotFound};
 use failure::Error;
+use uuid::Uuid;
 
 use super::DbActor;
-use crate::models::{Product, ProductData};
+use crate::models::{CategoryProduct, Product, ProductData, ProductDataWithMeta, ProductWithMeta};
+use crate::schema::category_products::dsl as cp_dsl;
 use crate::schema::products::dsl;
 
 #[derive(Debug)]
 pub struct ListProducts {}
 
 impl Message for ListProducts {
-    type Result = Result<Vec<Product>, Error>;
+    type Result = Result<Vec<ProductWithMeta>, Error>;
 }
 
 impl Handler<ListProducts> for DbActor {
-    type Result = Result<Vec<Product>, Error>;
+    type Result = Result<Vec<ProductWithMeta>, Error>;
 
     fn handle(&mut self, _msg: ListProducts, _: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
         let products = dsl::products
             .load::<Product>(&conn)
             .expect("Error loading products");
+        let category_ids = CategoryProduct::belonging_to(&products)
+            .load::<CategoryProduct>(&conn)
+            .expect("Error loading category products")
+            .grouped_by(&products);
+        let products_with_meta = products
+            .into_iter()
+            .zip(category_ids)
+            .map(|(product, category_ids)| {
+                let category_ids = category_ids.into_iter().map(|c| c.category_id).collect();
+                ProductWithMeta {
+                    product,
+                    category_ids,
+                }
+            })
+            .collect();
 
-        Ok(products)
+        Ok(products_with_meta)
     }
 }
 
@@ -32,20 +49,36 @@ pub struct GetProduct {
 }
 
 impl Message for GetProduct {
-    type Result = Result<Option<Product>, Error>;
+    type Result = Result<Option<ProductWithMeta>, Error>;
 }
 
 impl Handler<GetProduct> for DbActor {
-    type Result = Result<Option<Product>, Error>;
+    type Result = Result<Option<ProductWithMeta>, Error>;
 
     fn handle(&mut self, msg: GetProduct, _: &mut Self::Context) -> Self::Result {
+        // Fetch product
         let conn = self.pool.get()?;
         let product = dsl::products
             .find(msg.id)
             .first::<Product>(&conn)
             .optional()?;
+        if product.is_none() {
+            return Ok(None);
+        }
 
-        Ok(product)
+        // Fetch related data
+        let product = product.unwrap();
+        let category_ids = CategoryProduct::belonging_to(&product)
+            .select(cp_dsl::category_id)
+            .load::<Uuid>(&conn)
+            .expect("Error loading category products");
+
+        // Build result
+        let product_with_meta = ProductWithMeta {
+            product,
+            category_ids,
+        };
+        Ok(Some(product_with_meta))
     }
 }
 

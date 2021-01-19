@@ -19,6 +19,13 @@ pub struct Product {
     pub stock_count: i32,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ProductWithMeta {
+    #[serde(flatten)]
+    pub product: Product,
+    pub category_ids: Vec<Uuid>,
+}
+
 #[derive(Debug, Insertable, AsChangeset, Deserialize)]
 #[table_name = "products"]
 pub struct ProductData {
@@ -30,4 +37,11 @@ pub struct ProductData {
     pub manufacturer_id: Option<Uuid>,
     pub status: String,
     pub stock_count: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ProductDataWithMeta {
+    #[serde(flatten)]
+    pub product: ProductData,
+    pub category_ids: Vec<Uuid>,
 }
