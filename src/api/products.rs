@@ -59,7 +59,7 @@ async fn get_product(
 #[post("")]
 async fn add_product(
     ctx: web::Data<Context>,
-    form: web::Json<models::ProductData>,
+    form: web::Json<models::ProductDataWithMeta>,
 ) -> Result<HttpResponse, Error> {
     let msg = InsertProduct {
         data: form.into_inner(),
@@ -79,7 +79,7 @@ async fn add_product(
 async fn update_product(
     ctx: web::Data<Context>,
     product_id: web::Path<uuid::Uuid>,
-    form: web::Json<models::ProductData>,
+    form: web::Json<models::ProductDataWithMeta>,
 ) -> Result<HttpResponse, Error> {
     let product_id = product_id.into_inner();
     let msg = UpdateProduct {

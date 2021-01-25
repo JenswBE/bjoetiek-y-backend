@@ -21,7 +21,7 @@ pub struct CategoryData {
     pub sort_order: i16,
 }
 
-#[derive(Queryable, Identifiable, Associations)]
+#[derive(Queryable, Identifiable, Associations, Insertable)]
 #[belongs_to(Category)]
 #[belongs_to(Product)]
 #[primary_key(product_id, category_id)]

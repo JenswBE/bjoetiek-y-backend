@@ -1,9 +1,9 @@
 use actix::{Handler, Message};
-use diesel::{prelude::*, result::Error::NotFound};
+use diesel::{insert_into, prelude::*, result::Error::NotFound};
 use failure::Error;
 use uuid::Uuid;
 
-use super::DbActor;
+use super::{categories, DbActor};
 use crate::models::{CategoryProduct, Product, ProductData, ProductDataWithMeta, ProductWithMeta};
 use crate::schema::category_products::dsl as cp_dsl;
 use crate::schema::products::dsl;
@@ -84,7 +84,7 @@ impl Handler<GetProduct> for DbActor {
 
 #[derive(Debug)]
 pub struct InsertProduct {
-    pub data: ProductData,
+    pub data: ProductDataWithMeta,
 }
 
 impl Message for InsertProduct {
@@ -96,17 +96,33 @@ impl Handler<InsertProduct> for DbActor {
 
     fn handle(&mut self, msg: InsertProduct, _: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
-        diesel::insert_into(dsl::products)
-            .values(msg.data)
-            .get_result(&conn)
-            .map_err(Error::from)
+        conn.transaction(|| {
+            // Insert product
+            let product = diesel::insert_into(dsl::products)
+                .values(msg.data.product)
+                .get_result::<Product>(&conn)?;
+
+            // Create CategoryProducts
+            for category_id in msg.data.category_ids {
+                let category_product = CategoryProduct {
+                    product_id: product.id,
+                    category_id,
+                };
+                diesel::insert_into(cp_dsl::category_products)
+                    .values(category_product)
+                    .execute(&conn)?;
+            }
+
+            // Add product successful
+            Ok(product)
+        })
     }
 }
 
 #[derive(Debug)]
 pub struct UpdateProduct {
     pub id: uuid::Uuid,
-    pub data: ProductData,
+    pub data: ProductDataWithMeta,
 }
 
 impl Message for UpdateProduct {
@@ -118,10 +134,30 @@ impl Handler<UpdateProduct> for DbActor {
 
     fn handle(&mut self, msg: UpdateProduct, _: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
-        diesel::update(dsl::products.find(msg.id))
-            .set(msg.data)
-            .get_result(&conn)
-            .map_err(Error::from)
+        conn.transaction(|| {
+            // Update product
+            let product = diesel::update(dsl::products.find(msg.id))
+                .set(msg.data.product)
+                .get_result::<Product>(&conn)?;
+
+            // Remove old CategoryProducts
+            diesel::delete(cp_dsl::category_products.filter(cp_dsl::product_id.eq_all(product.id)))
+                .execute(&conn)?;
+
+            // Recreate CategoryProducts
+            for category_id in msg.data.category_ids {
+                let category_product = CategoryProduct {
+                    product_id: product.id,
+                    category_id,
+                };
+                diesel::insert_into(cp_dsl::category_products)
+                    .values(category_product)
+                    .execute(&conn)?;
+            }
+
+            // Update successful
+            Ok(product)
+        })
     }
 }
 
