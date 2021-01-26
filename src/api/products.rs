@@ -117,8 +117,8 @@ async fn delete_product(
         // Send success response
         Ok(HttpResponse::Ok().finish())
     } else {
-        let res =
-            HttpResponse::NotFound().body(format!("No product found with id: {}", product_id));
+        let err = result.unwrap_err();
+        let res = HttpResponse::BadRequest().body(format!("{}", err));
         Ok(res)
     }
 }
