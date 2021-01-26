@@ -9,7 +9,9 @@ use std::env;
 use actix::{Addr, SyncArbiter};
 use actix_cors::Cors;
 use actix_files as fs;
-use actix_web::{middleware, middleware::normalize::TrailingSlash, web, App, HttpServer};
+use actix_web::{
+    error, middleware, middleware::normalize::TrailingSlash, web, App, HttpResponse, HttpServer,
+};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
@@ -67,6 +69,11 @@ pub async fn run(config: Config) -> std::io::Result<()> {
     log::info!("Starting server at: {}:{}", config.host, config.port);
     HttpServer::new(move || {
         App::new()
+            .app_data(web::JsonConfig::default().error_handler(|err, req| {
+                let msg = format!("{}", err);
+                error::InternalError::from_response(err, HttpResponse::BadRequest().body(msg))
+                    .into()
+            }))
             .data(ctx.clone())
             .service(
                 web::scope("/public")
