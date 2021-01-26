@@ -88,11 +88,11 @@ pub struct InsertProduct {
 }
 
 impl Message for InsertProduct {
-    type Result = Result<Product, Error>;
+    type Result = Result<ProductWithMeta, Error>;
 }
 
 impl Handler<InsertProduct> for DbActor {
-    type Result = Result<Product, Error>;
+    type Result = Result<ProductWithMeta, Error>;
 
     fn handle(&mut self, msg: InsertProduct, _: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
@@ -103,10 +103,10 @@ impl Handler<InsertProduct> for DbActor {
                 .get_result::<Product>(&conn)?;
 
             // Create CategoryProducts
-            for category_id in msg.data.category_ids {
+            for category_id in msg.data.category_ids.iter() {
                 let category_product = CategoryProduct {
                     product_id: product.id,
-                    category_id,
+                    category_id: category_id.clone(),
                 };
                 diesel::insert_into(cp_dsl::category_products)
                     .values(category_product)
@@ -114,7 +114,10 @@ impl Handler<InsertProduct> for DbActor {
             }
 
             // Add product successful
-            Ok(product)
+            Ok(ProductWithMeta {
+                product,
+                category_ids: msg.data.category_ids,
+            })
         })
     }
 }
@@ -126,11 +129,11 @@ pub struct UpdateProduct {
 }
 
 impl Message for UpdateProduct {
-    type Result = Result<Product, Error>;
+    type Result = Result<ProductWithMeta, Error>;
 }
 
 impl Handler<UpdateProduct> for DbActor {
-    type Result = Result<Product, Error>;
+    type Result = Result<ProductWithMeta, Error>;
 
     fn handle(&mut self, msg: UpdateProduct, _: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
@@ -145,10 +148,10 @@ impl Handler<UpdateProduct> for DbActor {
                 .execute(&conn)?;
 
             // Recreate CategoryProducts
-            for category_id in msg.data.category_ids {
+            for category_id in msg.data.category_ids.iter() {
                 let category_product = CategoryProduct {
                     product_id: product.id,
-                    category_id,
+                    category_id: category_id.clone(),
                 };
                 diesel::insert_into(cp_dsl::category_products)
                     .values(category_product)
@@ -156,7 +159,10 @@ impl Handler<UpdateProduct> for DbActor {
             }
 
             // Update successful
-            Ok(product)
+            Ok(ProductWithMeta {
+                product,
+                category_ids: msg.data.category_ids,
+            })
         })
     }
 }
