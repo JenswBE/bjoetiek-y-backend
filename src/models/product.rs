@@ -28,6 +28,7 @@ pub struct ProductWithMeta {
 
 #[derive(Debug, Insertable, AsChangeset, Deserialize)]
 #[table_name = "products"]
+#[changeset_options(treat_none_as_null = "true")]
 pub struct ProductData {
     pub name: String,
     pub slug: String,
