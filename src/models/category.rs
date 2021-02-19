@@ -9,6 +9,7 @@ use crate::schema::{categories, category_products};
 pub struct Category {
     pub id: Uuid,
     pub name: String,
+    pub slug: String,
     pub description: String,
     pub sort_order: i16,
 }
@@ -19,6 +20,9 @@ pub struct CategoryData {
     pub name: String,
     pub description: String,
     pub sort_order: i16,
+
+    #[serde(skip_deserializing)]
+    pub slug: String,
 }
 
 #[derive(Queryable, Identifiable, Associations, Insertable)]

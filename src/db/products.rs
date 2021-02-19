@@ -1,10 +1,11 @@
 use actix::{Handler, Message};
-use diesel::{insert_into, prelude::*, result::Error::NotFound};
+use diesel::{prelude::*, result::Error::NotFound};
 use failure::Error;
 use uuid::Uuid;
 
-use super::{categories, DbActor};
-use crate::models::{CategoryProduct, Product, ProductData, ProductDataWithMeta, ProductWithMeta};
+use super::helpers;
+use super::DbActor;
+use crate::models::{CategoryProduct, Product, ProductDataWithMeta, ProductWithMeta};
 use crate::schema::category_products::dsl as cp_dsl;
 use crate::schema::products::dsl;
 
@@ -94,31 +95,19 @@ impl Message for InsertProduct {
 impl Handler<InsertProduct> for DbActor {
     type Result = Result<ProductWithMeta, Error>;
 
-    fn handle(&mut self, msg: InsertProduct, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: InsertProduct, ctx: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
-        conn.transaction(|| {
-            // Insert product
-            let product = diesel::insert_into(dsl::products)
-                .values(msg.data.product)
-                .get_result::<Product>(&conn)?;
+        // Insert product
+        let product = diesel::insert_into(dsl::products)
+            .values(&msg.data.product)
+            .get_result::<Product>(&conn)?;
 
-            // Create CategoryProducts
-            for category_id in msg.data.category_ids.iter() {
-                let category_product = CategoryProduct {
-                    product_id: product.id,
-                    category_id: category_id.clone(),
-                };
-                diesel::insert_into(cp_dsl::category_products)
-                    .values(category_product)
-                    .execute(&conn)?;
-            }
-
-            // Add product successful
-            Ok(ProductWithMeta {
-                product,
-                category_ids: msg.data.category_ids,
-            })
-        })
+        // Update product to set slug and CategoryProducts
+        let msg_update = UpdateProduct {
+            id: product.id,
+            data: msg.data,
+        };
+        self.handle(msg_update, ctx)
     }
 }
 
@@ -135,12 +124,13 @@ impl Message for UpdateProduct {
 impl Handler<UpdateProduct> for DbActor {
     type Result = Result<ProductWithMeta, Error>;
 
-    fn handle(&mut self, msg: UpdateProduct, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, mut msg: UpdateProduct, _: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
         conn.transaction(|| {
             // Update product
+            msg.data.product.slug = helpers::generate_slug(&msg.data.product.name, &msg.id);
             let product = diesel::update(dsl::products.find(msg.id))
-                .set(msg.data.product)
+                .set(&msg.data.product)
                 .get_result::<Product>(&conn)?;
 
             // Remove old CategoryProducts

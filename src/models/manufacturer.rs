@@ -7,6 +7,7 @@ use crate::schema::manufacturers;
 pub struct Manufacturer {
     pub id: Uuid,
     pub name: String,
+    pub slug: String,
     pub website_url: String,
 }
 
@@ -15,4 +16,7 @@ pub struct Manufacturer {
 pub struct ManufacturerData {
     pub name: String,
     pub website_url: String,
+
+    #[serde(skip_deserializing)]
+    pub slug: String,
 }

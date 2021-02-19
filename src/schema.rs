@@ -2,6 +2,7 @@ table! {
     categories (id) {
         id -> Uuid,
         name -> Text,
+        slug -> Text,
         description -> Text,
         sort_order -> Int2,
     }
@@ -18,6 +19,7 @@ table! {
     manufacturers (id) {
         id -> Uuid,
         name -> Text,
+        slug -> Text,
         website_url -> Text,
     }
 }

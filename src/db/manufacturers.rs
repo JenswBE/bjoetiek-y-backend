@@ -2,6 +2,7 @@ use actix::{Handler, Message};
 use diesel::{prelude::*, result::Error::NotFound};
 use failure::Error;
 
+use super::helpers;
 use super::DbActor;
 use crate::models::{Manufacturer, ManufacturerData};
 use crate::schema::manufacturers::dsl;
@@ -61,12 +62,19 @@ impl Message for InsertManufacturer {
 impl Handler<InsertManufacturer> for DbActor {
     type Result = Result<Manufacturer, Error>;
 
-    fn handle(&mut self, msg: InsertManufacturer, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: InsertManufacturer, ctx: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
-        diesel::insert_into(dsl::manufacturers)
-            .values(msg.data)
+        let man: Manufacturer = diesel::insert_into(dsl::manufacturers)
+            .values(&msg.data)
             .get_result(&conn)
-            .map_err(Error::from)
+            .map_err(Error::from)?;
+
+        let msg_update = UpdateManufacturer {
+            id: man.id,
+            data: msg.data,
+        };
+
+        self.handle(msg_update, ctx)
     }
 }
 
@@ -83,10 +91,11 @@ impl Message for UpdateManufacturer {
 impl Handler<UpdateManufacturer> for DbActor {
     type Result = Result<Manufacturer, Error>;
 
-    fn handle(&mut self, msg: UpdateManufacturer, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, mut msg: UpdateManufacturer, _: &mut Self::Context) -> Self::Result {
+        msg.data.slug = helpers::generate_slug(&msg.data.name, &msg.id);
         let conn = self.pool.get()?;
         diesel::update(dsl::manufacturers.find(msg.id))
-            .set(msg.data)
+            .set(&msg.data)
             .get_result(&conn)
             .map_err(Error::from)
     }

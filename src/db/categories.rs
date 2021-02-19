@@ -2,6 +2,7 @@ use actix::{Handler, Message};
 use diesel::{prelude::*, result::Error::NotFound};
 use failure::Error;
 
+use super::helpers;
 use super::DbActor;
 use crate::models::{Category, CategoryData};
 use crate::schema::categories::dsl;
@@ -61,12 +62,19 @@ impl Message for InsertCategory {
 impl Handler<InsertCategory> for DbActor {
     type Result = Result<Category, Error>;
 
-    fn handle(&mut self, msg: InsertCategory, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: InsertCategory, ctx: &mut Self::Context) -> Self::Result {
         let conn = self.pool.get()?;
-        diesel::insert_into(dsl::categories)
-            .values(msg.data)
+        let cat: Category = diesel::insert_into(dsl::categories)
+            .values(&msg.data)
             .get_result(&conn)
-            .map_err(Error::from)
+            .map_err(Error::from)?;
+
+        let msg_update = UpdateCategory {
+            id: cat.id,
+            data: msg.data,
+        };
+
+        self.handle(msg_update, ctx)
     }
 }
 
@@ -83,7 +91,8 @@ impl Message for UpdateCategory {
 impl Handler<UpdateCategory> for DbActor {
     type Result = Result<Category, Error>;
 
-    fn handle(&mut self, msg: UpdateCategory, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, mut msg: UpdateCategory, _: &mut Self::Context) -> Self::Result {
+        msg.data.slug = helpers::generate_slug(&msg.data.name, &msg.id);
         let conn = self.pool.get()?;
         diesel::update(dsl::categories.find(msg.id))
             .set(msg.data)

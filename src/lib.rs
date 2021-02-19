@@ -69,7 +69,7 @@ pub async fn run(config: Config) -> std::io::Result<()> {
     log::info!("Starting server at: {}:{}", config.host, config.port);
     HttpServer::new(move || {
         App::new()
-            .app_data(web::JsonConfig::default().error_handler(|err, req| {
+            .app_data(web::JsonConfig::default().error_handler(|err, _| {
                 let msg = format!("{}", err);
                 error::InternalError::from_response(err, HttpResponse::BadRequest().body(msg))
                     .into()

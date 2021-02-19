@@ -8,4 +8,4 @@ IFS=$'\n\t'
 # Launch backend
 docker-compose up -d
 docker-compose stop backend
-cargo watch --exec run --ignore "images/*"
+RUST_BACKTRACE=1 cargo watch --exec run --ignore "images/*"
