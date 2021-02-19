@@ -84,6 +84,45 @@ impl Handler<GetProduct> for DbActor {
 }
 
 #[derive(Debug)]
+pub struct GetProductBySlug {
+    pub slug: String,
+}
+
+impl Message for GetProductBySlug {
+    type Result = Result<Option<ProductWithMeta>, Error>;
+}
+
+impl Handler<GetProductBySlug> for DbActor {
+    type Result = Result<Option<ProductWithMeta>, Error>;
+
+    fn handle(&mut self, msg: GetProductBySlug, _: &mut Self::Context) -> Self::Result {
+        // Fetch product
+        let conn = self.pool.get()?;
+        let product = dsl::products
+            .filter(dsl::slug.eq_all(msg.slug))
+            .first::<Product>(&conn)
+            .optional()?;
+        if product.is_none() {
+            return Ok(None);
+        }
+
+        // Fetch related data
+        let product = product.unwrap();
+        let category_ids = CategoryProduct::belonging_to(&product)
+            .select(cp_dsl::category_id)
+            .load::<Uuid>(&conn)
+            .expect("Error loading category products");
+
+        // Build result
+        let product_with_meta = ProductWithMeta {
+            product,
+            category_ids,
+        };
+        Ok(Some(product_with_meta))
+    }
+}
+
+#[derive(Debug)]
 pub struct InsertProduct {
     pub data: ProductDataWithMeta,
 }

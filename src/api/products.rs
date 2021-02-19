@@ -6,13 +6,17 @@ use crate::models;
 use crate::Context;
 
 pub fn public_scope(path: &str) -> Scope {
-    web::scope(path).service(list_products).service(get_product)
+    web::scope(path)
+        .service(list_products)
+        .service(get_product)
+        .service(get_product_by_slug)
 }
 
 pub fn admin_scope(path: &str) -> Scope {
     web::scope(path)
         .service(list_products)
         .service(get_product)
+        .service(get_product_by_slug)
         .service(add_product)
         .service(update_product)
         .service(delete_product)
@@ -51,6 +55,31 @@ async fn get_product(
     } else {
         let res =
             HttpResponse::NotFound().body(format!("No product found with id: {}", product_id));
+        Ok(res)
+    }
+}
+
+/// Find product by slug
+#[get("/slug/{product_slug}")]
+async fn get_product_by_slug(
+    ctx: web::Data<Context>,
+    product_slug: web::Path<String>,
+) -> Result<HttpResponse, Error> {
+    let product_slug = product_slug.into_inner();
+    let msg = GetProductBySlug {
+        slug: product_slug.clone(),
+    };
+    let product = ctx
+        .db
+        .send(msg)
+        .await
+        .expect("Failed to contact DbActor")
+        .expect("Failed to fetch product by slug");
+    if let Some(product) = product {
+        Ok(HttpResponse::Ok().json(product))
+    } else {
+        let res =
+            HttpResponse::NotFound().body(format!("No product found with slug: {}", product_slug));
         Ok(res)
     }
 }
