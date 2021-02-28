@@ -7,9 +7,27 @@ use image::imageops::FilterType;
 use uuid::Uuid;
 
 const SAMPLING_FILTER: FilterType = FilterType::Lanczos3;
-const THUMBNAIL_SPECS: [ThumbnailSpec; 1] = thumbnail_specs();
-const fn thumbnail_specs() -> [ThumbnailSpec; 1] {
+const THUMBNAIL_SPECS: [ThumbnailSpec; 4] = thumbnail_specs();
+const fn thumbnail_specs() -> [ThumbnailSpec; 4] {
     [
+        // Products overview
+        ThumbnailSpec {
+            width: 400,
+            height: 400,
+            fill: false,
+        },
+        // Product details
+        ThumbnailSpec {
+            width: 550,
+            height: 550,
+            fill: false,
+        },
+        // Manufacturer logo
+        ThumbnailSpec {
+            width: 150,
+            height: 150,
+            fill: false,
+        },
         // General admin
         ThumbnailSpec {
             width: 100,
