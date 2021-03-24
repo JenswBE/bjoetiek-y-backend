@@ -2,6 +2,8 @@ name: Test, build and publish
 on:
   push:
     branches: [main]
+    tags:
+      - "*"
 
 env:
   DOCKER_HUB_USER: jenswbebot
