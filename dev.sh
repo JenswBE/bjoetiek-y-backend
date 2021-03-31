@@ -7,5 +7,9 @@ IFS=$'\n\t'
 
 # Launch backend
 docker-compose up -d
-docker-compose stop backend
+
+# Run migrations
+diesel migration run
+
+# Start backend
 RUST_BACKTRACE=1 cargo watch --exec run --ignore "images/*"
