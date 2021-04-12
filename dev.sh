@@ -9,6 +9,7 @@ IFS=$'\n\t'
 docker-compose up -d
 
 # Run migrations
+sleep 2
 diesel migration run
 
 # Start backend
