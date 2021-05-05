@@ -476,9 +476,10 @@ components:
               readOnly: True
 
   securitySchemes:
-    basicAuth:
-      type: http
-      scheme: basic
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: http://localhost:8091/auth/realms/bjoetiek/.well-known/openid-configuration
+      scheme: bearer
 
 security:
-  - basicAuth: []
+  - keycloak: []

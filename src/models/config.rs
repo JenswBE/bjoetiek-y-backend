@@ -1,11 +1,15 @@
+use lazy_static::lazy_static;
 use std::{env, net::IpAddr, path::PathBuf};
+
+lazy_static! {
+    static ref KEYCLOAK_PUBLIC_KEY: String = parse_required_string("KEYCLOAK_PUBLIC_KEY");
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub host: IpAddr,
     pub port: u16,
-    pub admin_username: String,
-    pub admin_password: String,
+    pub keycloak_public_key: &'static str,
     pub images_path: PathBuf,
 }
 
@@ -14,8 +18,7 @@ impl Config {
         Self {
             host: parse_ip_addr("BIND_HOST", [0, 0, 0, 0].into()),
             port: parse_port("BIND_PORT", 8090),
-            admin_username: parse_required_string("ADMIN_USERNAME"),
-            admin_password: parse_required_string("ADMIN_PASSWORD"),
+            keycloak_public_key: KEYCLOAK_PUBLIC_KEY.as_str(),
             images_path: parse_required_pathbuf("IMAGES_PATH"),
         }
     }

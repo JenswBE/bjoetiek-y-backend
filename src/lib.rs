@@ -12,7 +12,6 @@ use actix_files as fs;
 use actix_web::{
     error, middleware, middleware::normalize::TrailingSlash, web, App, HttpResponse, HttpServer,
 };
-use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 
@@ -32,7 +31,6 @@ diesel_migrations::embed_migrations!();
 
 #[derive(Clone)]
 struct Context {
-    pub creds: auth::BasicCreds,
     pub db: Addr<DbActor>,
     pub image: Addr<ImageActor>,
 }
@@ -60,10 +58,12 @@ pub async fn run(config: Config) -> std::io::Result<()> {
     // Build state
     let images_path = config.images_path.clone();
     let ctx = Context {
-        creds: auth::BasicCreds::new(&config.admin_username, &config.admin_password),
         db: SyncArbiter::start(3, move || DbActor::new(pool.clone())),
         image: SyncArbiter::start(3, move || ImageActor::new(images_path.clone())),
     };
+
+    // Create Keycloak middlewares
+    let keycloak_admin = auth::get_keycloak_admin(config.keycloak_public_key);
 
     // Start HTTP server
     log::info!("Starting server at: {}:{}", config.host, config.port);
@@ -83,7 +83,7 @@ pub async fn run(config: Config) -> std::io::Result<()> {
             )
             .service(
                 web::scope("/admin")
-                    .wrap(HttpAuthentication::basic(auth::validator))
+                    .wrap(keycloak_admin.clone())
                     .service(categories::admin_scope("/categories"))
                     .service(images::admin_scope("/images"))
                     .service(manufacturers::admin_scope("/manufacturers"))

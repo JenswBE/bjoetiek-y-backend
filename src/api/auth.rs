@@ -1,39 +1,16 @@
-use actix_web::{dev, error, web, Error};
-use actix_web_httpauth::extractors::basic::BasicAuth;
+use actix_web_middleware_keycloak_auth::{DecodingKey, KeycloakAuth, Role};
 
-use crate::Context;
-
-#[derive(Clone)]
-pub struct BasicCreds {
-    username: String,
-    password: String,
-}
-
-impl BasicCreds {
-    pub fn new(username: &str, password: &str) -> Self {
-        Self {
-            username: username.to_string(),
-            password: password.to_string(),
-        }
-    }
-
-    pub fn matches(&self, creds: BasicAuth) -> bool {
-        creds.user_id() == &self.username
-            && creds.password().is_some()
-            && creds.password().unwrap() == &self.password
+fn get_keycloak(public_key: &'static str, roles: Vec<Role>) -> KeycloakAuth {
+    KeycloakAuth {
+        detailed_responses: true,
+        keycloak_oid_public_key: DecodingKey::from_rsa_pem(public_key.as_bytes()).unwrap(),
+        required_roles: roles,
     }
 }
 
-pub async fn validator(
-    req: dev::ServiceRequest,
-    credentials: BasicAuth,
-) -> Result<dev::ServiceRequest, Error> {
-    let ctx = req
-        .app_data::<web::Data<Context>>()
-        .expect("App data should be set");
-    if ctx.creds.matches(credentials) {
-        Ok(req)
-    } else {
-        Err(error::ErrorUnauthorized("Incorrect username or password"))
-    }
+pub fn get_keycloak_admin(public_key: &'static str) -> KeycloakAuth {
+    let admin_role = vec![Role::Realm {
+        role: "admin".to_owned(),
+    }];
+    get_keycloak(public_key, admin_role)
 }

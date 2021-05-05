@@ -27,6 +27,18 @@ services:
       - "PGADMIN_DEFAULT_EMAIL=admin@bjoetiek-y.be"
       - "PGADMIN_DEFAULT_PASSWORD=bjoetiek"
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:12.0.4
+    container_name: keycloak
+    networks:
+      - bjoetiek
+    ports:
+      - "127.0.0.1:8091:8080"
+    environment:
+      - "TZ=${TIMEZONE}"
+      - "KEYCLOAK_USER=admin"
+      - "KEYCLOAK_PASSWORD=admin"
+
 networks:
   bjoetiek:
     name: bjoetiek
