@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2018"
 
 [dependencies]
-actix = "0.10"
+actix = "0.11"
 actix-cors = "0.5"
 actix-files = "0.5"
 actix-multipart = "0.3"
