@@ -1,3 +1,5 @@
+# This project has been superseded by [GoCommerce](https://github.com/JenswBE/go-commerce).
+
 # Bjoetiek Y backend
 
 ## Config
